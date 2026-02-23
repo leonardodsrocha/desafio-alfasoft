@@ -39,6 +39,8 @@ tags:
     description: Operações de leitura e escrita na agenda de contatos
   - name: Autenticação
     description: Login e logout por sessão
+  - name: Activity Log
+    description: Histórico de auditoria de criações, edições e exclusões de contatos
 
 # ---------------------------------------------------------------------------
 # Schemas reutilizáveis
@@ -548,6 +550,56 @@ paths:
           description: Não autenticado — redireciona para `/login`.
         "404":
           description: Contato não encontrado ou excluído.
+
+  # --------------------------------------------------------------------------
+  # Activity Log
+  # --------------------------------------------------------------------------
+
+  /activity-logs:
+    get:
+      tags: [Activity Log]
+      summary: Listar histórico de auditoria
+      description: |
+        Retorna a página HTML com o histórico paginado (20 por página) de todas
+        as ações realizadas sobre contatos: criações, edições e exclusões.
+
+        Cada registro contém:
+        - Ação (`created`, `updated` ou `deleted`)
+        - Nome e ID do contato afetado
+        - Usuário responsável (ou _System_ se via seed/job)
+        - Endereço IP da requisição
+        - Data e hora (America/Sao_Paulo)
+        - Snapshot dos valores **antes** e **depois** (apenas para `updated` e `deleted`)
+
+        O parâmetro opcional `action` filtra por tipo de ação.
+      operationId: activityLogIndex
+      security:
+        - SessionCookie: []
+      parameters:
+        - in: query
+          name: action
+          required: false
+          schema:
+            type: string
+            enum: [created, updated, deleted]
+          description: Filtra o histórico por tipo de ação.
+          example: updated
+        - in: query
+          name: page
+          required: false
+          schema:
+            type: integer
+            default: 1
+          description: Número da página (20 registros por página).
+      responses:
+        "200":
+          description: Página HTML com o histórico de auditoria.
+          content:
+            text/html:
+              schema:
+                type: string
+        "302":
+          description: Não autenticado — redireciona para `/login`.
 
   # --------------------------------------------------------------------------
   # Redirect raiz

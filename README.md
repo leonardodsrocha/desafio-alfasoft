@@ -41,7 +41,7 @@ Sistema de agenda com autenticação por sessão. Qualquer visitante pode ver a 
 | Frontend | Bootstrap 5.3 via CDN + Bootstrap Icons |
 | Autenticação | Sessions (Laravel Auth) |
 | Validação | Form Requests |
-| Testes | PHPUnit 10 (57 testes, 125 asserções) |
+| Testes | PHPUnit 10 (68 testes, 152 asserções) |
 
 ---
 
@@ -54,6 +54,7 @@ Sistema de agenda com autenticação por sessão. Qualquer visitante pode ver a 
 - **Exclusão** via soft-delete com confirmação no browser
 - **Autenticação** por sessão (login/logout) com proteção CSRF e throttle no login
 - **Guards de acesso**: visitantes só leem; as operações de escrita exigem login
+- **Activity Log**: histórico completo de criações, edições e exclusões de contatos, com registro do usuário, IP e snapshot dos campos alterados (antes/depois)
 
 ### Regras de negócio
 
@@ -123,7 +124,7 @@ php artisan test
 ```
 
 ```
-Tests:    57 passed (125 assertions)
+Tests:    68 passed (152 assertions)
 Duration: ~2s
 ```
 
@@ -140,6 +141,7 @@ Duration: ~2s
 | Destroy — soft-delete | 3 |
 | Login — formulário, validação, credenciais | 6 |
 | Logout — sessão e guard | 2 |
+| Activity Log — criação, edição, exclusão, filtro, display | 11 |
 | Unit — modelo Contact | 3 |
 
 ---
@@ -159,6 +161,7 @@ Duration: ~2s
 | `GET` | `/contacts/{id}/edit` | Auth | Formulário de edição |
 | `PUT` | `/contacts/{id}` | Auth | Atualizar contato |
 | `DELETE` | `/contacts/{id}` | Auth | Soft-delete do contato |
+| `GET` | `/activity-logs` | Auth | Histórico de auditoria (paginado, filtrável por ação) |
 
 ---
 
@@ -181,7 +184,8 @@ app/
 ├── Http/
 │   ├── Controllers/
 │   │   ├── Auth/LoginController.php      # Login e logout
-│   │   └── ContactController.php         # CRUD de contatos
+│   │   ├── ContactController.php         # CRUD de contatos
+│   │   └── ActivityLogController.php     # Listagem do histórico de auditoria
 │   ├── Requests/
 │   │   ├── ContactRequest.php            # Classe base com labels e mensagens
 │   │   ├── StoreContactRequest.php       # Validação de criação
@@ -190,10 +194,14 @@ app/
 │   └── Middleware/
 │       └── Authenticate.php
 ├── Models/
-│   └── Contact.php                       # Model com SoftDeletes + scopeSearch
+│   ├── Contact.php                       # Model com SoftDeletes + scopeSearch
+│   └── ActivityLog.php                   # Model imutável do log de auditoria
+├── Observers/
+│   └── ContactObserver.php               # Captura created/updated/deleted e persiste logs
 database/
 ├── migrations/
-│   └── 2026_02_23_000000_create_contacts_table.php
+│   ├── 2026_02_23_000000_create_contacts_table.php
+│   └── 2026_02_23_000002_create_activity_logs_table.php
 ├── seeders/
 │   ├── AdminUserSeeder.php               # admin@admin.com / 123456
 │   └── ContactSeeder.php                # 5 contatos de exemplo
@@ -202,15 +210,18 @@ database/
 resources/views/
 ├── layouts/app.blade.php                # Layout Bootstrap 5
 ├── auth/login.blade.php
-└── contacts/
-    ├── index.blade.php
-    ├── create.blade.php
-    ├── show.blade.php
-    └── edit.blade.php
+├── contacts/
+│   ├── index.blade.php
+│   ├── create.blade.php
+│   ├── show.blade.php
+│   └── edit.blade.php
+└── activity_logs/
+    └── index.blade.php                  # Tabela paginada com filtros e diff expansível
 tests/
 ├── Unit/ExampleTest.php                 # Testes de configuração do modelo
 └── Feature/
     ├── ContactValidationTest.php        # Suite principal (54 testes)
+    ├── ActivityLogTest.php              # Suite do Activity Log (11 testes)
     └── ExampleTest.php                  # Rotas raiz
 public/
 └── api-docs/
