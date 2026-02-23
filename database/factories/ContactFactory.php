@@ -10,16 +10,21 @@ use Illuminate\Database\Eloquent\Factories\Factory;
 class ContactFactory extends Factory
 {
     /**
-     * Define the model's default state.
+     * Estado padrão de um contato gerado para testes.
+     *
+     * O telefone usa numerify('#########') para garantir exatamente 9 dígitos
+     * numéricos, alinhado com a validação `digits:9` das requests.
+     * unique() é aplicado a ambos os campos para evitar colisões quando
+     * vários contatos são criados na mesma suite de testes.
      *
      * @return array<string, mixed>
      */
     public function definition(): array
     {
         return [
-            'name'    => $this->faker->name(),
-            'contact' => $this->faker->unique()->numerify('#########'),
-            'email'   => $this->faker->unique()->safeEmail(),
+            'name'    => fake()->name(),
+            'contact' => fake()->unique()->numerify('#########'),
+            'email'   => fake()->unique()->safeEmail(),
         ];
     }
 }

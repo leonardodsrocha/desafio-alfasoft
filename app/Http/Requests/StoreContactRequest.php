@@ -7,7 +7,12 @@ use Illuminate\Validation\Rule;
 class StoreContactRequest extends ContactRequest
 {
     /**
-     * Only authenticated users can store contacts.
+     * Somente usuários autenticados podem criar contatos.
+     *
+     * Esta verificação é redundante com o middleware 'auth' definido na rota,
+     * mas garante que a request nunca executa sem autenticação mesmo quando
+     * invocada fora do contexto normal de rotas web (ex.: testes de integração
+     * ou chamadas diretas ao controller).
      */
     public function authorize(): bool
     {
@@ -15,10 +20,12 @@ class StoreContactRequest extends ContactRequest
     }
 
     /**
-     * Validation rules for creating a new contact.
+     * Regras de validação para criar um novo contato.
      *
-     * Phone and email must be globally unique, including among soft-deleted
-     * contacts — this prevents accidental reuse of a deleted contact's data.
+     * A verificação de unicidade de telefone e e-mail não inclui a cláusula
+     * whereNull('deleted_at'), por isso abrange também registros em soft-delete.
+     * Essa decisão é intencional — impede a reutilização de dados de contatos
+     * que foram excluídos, evitando colisões silenciosas na agenda.
      *
      * @return array<string, array<int, mixed>>
      */

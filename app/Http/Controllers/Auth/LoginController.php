@@ -12,7 +12,11 @@ use Illuminate\View\View;
 class LoginController extends Controller
 {
     /**
-     * Show the login form.
+     * Mostra o formulário de autenticação.
+     *
+     * A rota está protegida com o middleware 'guest': um usuário que já
+     * tem sessão iniciada é redirecionado para a lista de contatos sem
+     * chegar a ver o formulário.
      */
     public function showLoginForm(): View
     {
@@ -20,7 +24,15 @@ class LoginController extends Controller
     }
 
     /**
-     * Handle an incoming authentication request.
+     * Processa as credenciais e inicia a sessão autenticada.
+     *
+     * Auth::attempt() verifica a password contra o hash bcrypt guardado
+     * na base de dados. A regeneração de sessão após login bem-sucedido
+     * é obrigatória para prevenir ataques de fixação de sessão (session fixation).
+     *
+     * O erro de credenciais inválidas é propositadamente anexado ao campo
+     * 'email' e não a 'password' — desta forma não se revela qual dos dois
+     * campos está errado, dificultando a enumeração de usuários.
      */
     public function login(LoginRequest $request): RedirectResponse
     {
@@ -37,7 +49,12 @@ class LoginController extends Controller
     }
 
     /**
-     * Destroy an authenticated session.
+     * Encerra a sessão e invalida o token CSRF por completo.
+     *
+     * A sessão é invalidada (e não apenas limpa) e o token é regenerado —
+     * qualquer pedido já em trânsito com o token antigo, por exemplo num
+     * tab aberto, será recusado. Ambos os passos são necessários para
+     * respeitar as boas práticas de logout seguro.
      */
     public function logout(Request $request): RedirectResponse
     {

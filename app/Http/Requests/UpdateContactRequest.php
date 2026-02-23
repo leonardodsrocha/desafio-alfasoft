@@ -7,7 +7,7 @@ use Illuminate\Validation\Rule;
 class UpdateContactRequest extends ContactRequest
 {
     /**
-     * Only authenticated users can update contacts.
+     * Somente usuários autenticados podem editar contatos.
      */
     public function authorize(): bool
     {
@@ -15,11 +15,13 @@ class UpdateContactRequest extends ContactRequest
     }
 
     /**
-     * Validation rules for updating an existing contact.
+     * Regras de validação para editar um contato existente.
      *
-     * `->ignore($contactId)` ensures the contact's own current phone/email
-     * does not trigger a false uniqueness violation on itself.
-     * Both phone and email remain globally unique, including soft-deleted rows.
+     * O ->ignore($contactId) nas regras de unicidade é o detalhe crítico desta
+     * classe: sem ele, submeter o formulário sem alterar o telefone ou o e-mail
+     * retornaria sempre "already taken", porque o próprio registro está na tabela.
+     * O ignore não cria exceção para outros contatos — a unicidade global
+     * permanece e continua abrangendo registros em soft-delete.
      *
      * @return array<string, array<int, mixed>>
      */

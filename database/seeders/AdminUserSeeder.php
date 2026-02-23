@@ -9,7 +9,12 @@ use Illuminate\Support\Facades\Hash;
 class AdminUserSeeder extends Seeder
 {
     /**
-     * Create the static admin user for the application.
+     * Cria ou atualiza o usuário administrador da aplicação.
+     *
+     * updateOrCreate() é preferível a create() porque torna o seeder idempotente:
+     * rodá-lo várias vezes em ambiente de desenvolvimento (ex.: após migrations
+     * em fresh) não duplica o registro nem lança uma exceção de chave duplicada.
+     * A senha '123456' destina-se exclusivamente ao ambiente de desenvolvimento.
      */
     public function run(): void
     {

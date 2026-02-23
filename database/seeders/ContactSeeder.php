@@ -8,7 +8,12 @@ use Illuminate\Database\Seeder;
 class ContactSeeder extends Seeder
 {
     /**
-     * Seed the contacts table with sample data.
+     * Carrega uma amostra de contatos de demonstração para ambiente local.
+     *
+     * firstOrCreate() verifica o e-mail antes de inserir, tornando o seeder
+     * idempotente: rodá-lo múltiplas vezes não duplica os registros. O e-mail
+     * é usado como chave de existência por ser único e imutável na regra de
+     * negócio, ao contrário do nome que pode ser alterado.
      */
     public function run(): void
     {
