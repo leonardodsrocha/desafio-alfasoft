@@ -2,10 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\StoreContactRequest;
+use App\Http\Requests\UpdateContactRequest;
 use App\Models\Contact;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class ContactController extends Controller
@@ -42,15 +43,9 @@ class ContactController extends Controller
     /**
      * Store a newly created contact in storage.
      */
-    public function store(Request $request): RedirectResponse
+    public function store(StoreContactRequest $request): RedirectResponse
     {
-        $validated = $request->validate([
-            'name'    => ['required', 'string', 'min:6'],
-            'contact' => ['required', 'digits:9', Rule::unique('contacts', 'contact')],
-            'email'   => ['required', 'email:rfc', Rule::unique('contacts', 'email')],
-        ]);
-
-        Contact::create($validated);
+        Contact::create($request->validated());
 
         return redirect()->route('contacts.index')
             ->with('success', 'Contact created successfully.');
@@ -75,15 +70,9 @@ class ContactController extends Controller
     /**
      * Update the specified contact in storage.
      */
-    public function update(Request $request, Contact $contact): RedirectResponse
+    public function update(UpdateContactRequest $request, Contact $contact): RedirectResponse
     {
-        $validated = $request->validate([
-            'name'    => ['required', 'string', 'min:6'],
-            'contact' => ['required', 'digits:9', Rule::unique('contacts', 'contact')->ignore($contact->id)],
-            'email'   => ['required', 'email:rfc', Rule::unique('contacts', 'email')->ignore($contact->id)],
-        ]);
-
-        $contact->update($validated);
+        $contact->update($request->validated());
 
         return redirect()->route('contacts.show', $contact)
             ->with('success', 'Contact updated successfully.');
