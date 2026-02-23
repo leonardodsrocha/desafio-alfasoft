@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Contact;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 use Illuminate\View\View;
 
 class ContactController extends Controller
@@ -14,13 +15,18 @@ class ContactController extends Controller
      */
     public function index(Request $request): View
     {
-        $search = $request->query('search');
+        $search = $request->string('search')->toString();
 
-        $contacts = Contact::when($search, function ($query, $search) {
-            $query->where('name', 'like', "%{$search}%")
-                  ->orWhere('email', 'like', "%{$search}%")
-                  ->orWhere('contact', 'like', "%{$search}%");
-        })->latest()->paginate(10)->withQueryString();
+        $contacts = Contact::when($search, function ($query) use ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%")
+                      ->orWhere('contact', 'like', "%{$search}%");
+                });
+            })
+            ->latest()
+            ->paginate(10)
+            ->withQueryString();
 
         return view('contacts.index', compact('contacts', 'search'));
     }
@@ -40,8 +46,8 @@ class ContactController extends Controller
     {
         $validated = $request->validate([
             'name'    => ['required', 'string', 'min:6'],
-            'contact' => ['required', 'digits:9', 'unique:contacts,contact'],
-            'email'   => ['required', 'email', 'unique:contacts,email'],
+            'contact' => ['required', 'digits:9', Rule::unique('contacts', 'contact')],
+            'email'   => ['required', 'email:rfc', Rule::unique('contacts', 'email')],
         ]);
 
         Contact::create($validated);
@@ -73,8 +79,8 @@ class ContactController extends Controller
     {
         $validated = $request->validate([
             'name'    => ['required', 'string', 'min:6'],
-            'contact' => ['required', 'digits:9', 'unique:contacts,contact,' . $contact->id],
-            'email'   => ['required', 'email', 'unique:contacts,email,' . $contact->id],
+            'contact' => ['required', 'digits:9', Rule::unique('contacts', 'contact')->ignore($contact->id)],
+            'email'   => ['required', 'email:rfc', Rule::unique('contacts', 'email')->ignore($contact->id)],
         ]);
 
         $contact->update($validated);
