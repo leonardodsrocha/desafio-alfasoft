@@ -54,7 +54,7 @@ Sistema de agenda com autenticação por sessão. Qualquer visitante pode ver a 
 - **Exclusão** via soft-delete com confirmação no browser
 - **Autenticação** por sessão (login/logout) com proteção CSRF e throttle no login
 - **Guards de acesso**: visitantes só leem; as operações de escrita exigem login
-- **Activity Log**: histórico completo de criações, edições e exclusões de contatos, com registro do usuário, IP e snapshot dos campos alterados (antes/depois)
+- **Activity Log** ⭐ *(extra — não solicitado)*: histórico completo de criações, edições e exclusões de contatos, com registro do usuário, IP e snapshot dos campos alterados (antes/depois)
 
 ### Regras de negócio
 
