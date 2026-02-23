@@ -24,7 +24,7 @@ Aplicação web CRUD desenvolvida em Laravel 10 para gerenciar uma agenda de con
 
 ## Visão geral
 
-Sistema de agenda com autenticação por sessão. Qualquer visitante pode ver a lista e o detalhe dos contatos; criar, editar e excluir exige login. A exclusão é feita via **soft-delete** do Laravel — o registro não sai do banco, apenas recebe `deleted_at`, mantendo as restrições de unicidade de telefone e e-mail ativas mesmo após a exclusão.
+Sistema de agenda com autenticação por sessão. Qualquer visitante pode ver a lista e o detalhe dos contatos; criar, editar e excluir exige login. A exclusão é feita via **soft-delete** do Laravel — o registro não sai do banco, apenas recebe `deleted_at`. Após a exclusão, o número de telefone e o e-mail ficam disponíveis para reutilização em novos cadastros.
 
 **Demo online:** https://leonardorocha-lv.recruitment.alfasoft.pt
 **Repositório:** https://github.com/leonardodsrocha/desafio-alfasoft
@@ -60,8 +60,8 @@ Sistema de agenda com autenticação por sessão. Qualquer visitante pode ver a 
 | Campo | Regra |
 |-------|-------|
 | `name` | string obrigatório, mínimo 6 caracteres |
-| `contact` | exatamente 9 dígitos numéricos, único na tabela (inclusive soft-deleted) |
-| `email` | e-mail válido (RFC), único na tabela (inclusive soft-deleted) |
+| `contact` | exatamente 9 dígitos numéricos, único entre contatos **ativos** |
+| `email` | e-mail válido (RFC), único entre contatos **ativos** |
 
 ---
 

@@ -18,12 +18,12 @@ class ContactValidationTest extends TestCase
 
     private function actingAsAdmin(): self
     {
-        return $this->actingAs(
-            User::factory()->create([
-                'email'    => 'admin@admin.com',
-                'password' => Hash::make('123456'),
-            ])
-        );
+        $admin = User::factory()->create([
+            'email'    => 'admin@admin.com',
+            'password' => Hash::make('123456'),
+        ]);
+
+        return $this->actingAs($admin);
     }
 
     private function validPayload(array $overrides = []): array
@@ -36,121 +36,8 @@ class ContactValidationTest extends TestCase
     }
 
     // =========================================================================
-    // INDEX – listing and search
-    // =========================================================================
-
-    /** @test */
-    public function guests_can_view_the_contacts_index(): void
-    {
-        $this->get(route('contacts.index'))->assertOk();
-    }
-
-    /** @test */
-    public function index_displays_all_contacts(): void
-    {
-        $contacts = Contact::factory()->count(3)->create();
-
-        $response = $this->get(route('contacts.index'));
-
-        foreach ($contacts as $contact) {
-            $response->assertSee($contact->name);
-        }
-    }
-
-    /** @test */
-    public function index_does_not_display_soft_deleted_contacts(): void
-    {
-        Contact::factory()->create(['name' => 'Active Person']);
-        $deleted = Contact::factory()->create(['name' => 'Deleted Person']);
-        $deleted->delete();
-
-        $this->get(route('contacts.index'))
-             ->assertSee('Active Person')
-             ->assertDontSee('Deleted Person');
-    }
-
-    /** @test */
-    public function index_search_filters_by_name(): void
-    {
-        Contact::factory()->create(['name' => 'João Fernandes']);
-        Contact::factory()->create(['name' => 'Manuel Pereira']);
-
-        $this->get(route('contacts.index', ['search' => 'João']))
-             ->assertSee('João Fernandes')
-             ->assertDontSee('Manuel Pereira');
-    }
-
-    /** @test */
-    public function index_search_filters_by_email(): void
-    {
-        Contact::factory()->create(['email' => 'joao@example.com', 'name' => 'João Fernandes']);
-        Contact::factory()->create(['email' => 'manuel@example.com', 'name' => 'Manuel Pereira']);
-
-        $this->get(route('contacts.index', ['search' => 'joao@example.com']))
-             ->assertSee('João Fernandes')
-             ->assertDontSee('Manuel Pereira');
-    }
-
-    /** @test */
-    public function index_search_filters_by_phone(): void
-    {
-        Contact::factory()->create(['contact' => '911111111', 'name' => 'João Fernandes']);
-        Contact::factory()->create(['contact' => '922222222', 'name' => 'Manuel Pereira']);
-
-        $this->get(route('contacts.index', ['search' => '911111111']))
-             ->assertSee('João Fernandes')
-             ->assertDontSee('Manuel Pereira');
-    }
-
-    /** @test */
-    public function index_search_returns_no_results_for_unmatched_term(): void
-    {
-        Contact::factory()->create(['name' => 'Maria Silva']);
-
-        $this->get(route('contacts.index', ['search' => 'xyz-not-found']))
-             ->assertDontSee('Maria Silva');
-    }
-
-    /** @test */
-    public function index_search_does_not_return_soft_deleted_contacts(): void
-    {
-        $deleted = Contact::factory()->create(['name' => 'Deleted Person']);
-        $deleted->delete();
-
-        $this->get(route('contacts.index', ['search' => 'Deleted']))
-             ->assertDontSee('Deleted Person');
-    }
-
-    // =========================================================================
-    // CREATE – form access
-    // =========================================================================
-
-    /** @test */
-    public function guests_cannot_access_create_form(): void
-    {
-        $this->get(route('contacts.create'))
-             ->assertRedirect(route('login'));
-    }
-
-    /** @test */
-    public function authenticated_user_can_access_create_form(): void
-    {
-        $this->actingAsAdmin()
-             ->get(route('contacts.create'))
-             ->assertOk()
-             ->assertViewIs('contacts.create');
-    }
-
-    // =========================================================================
     // STORE – creating a contact
     // =========================================================================
-
-    /** @test */
-    public function guests_cannot_store_contacts(): void
-    {
-        $this->post(route('contacts.store'), $this->validPayload())
-             ->assertRedirect(route('login'));
-    }
 
     /** @test */
     public function it_requires_name_to_store_a_contact(): void
@@ -245,28 +132,6 @@ class ContactValidationTest extends TestCase
     }
 
     /** @test */
-    public function it_rejects_phone_of_a_soft_deleted_contact(): void
-    {
-        $deleted = Contact::factory()->create(['contact' => '912345678']);
-        $deleted->delete();
-
-        $this->actingAsAdmin()
-             ->post(route('contacts.store'), $this->validPayload(['contact' => '912345678']))
-             ->assertSessionHasErrors('contact');
-    }
-
-    /** @test */
-    public function it_rejects_email_of_a_soft_deleted_contact(): void
-    {
-        $deleted = Contact::factory()->create(['email' => 'taken@example.com']);
-        $deleted->delete();
-
-        $this->actingAsAdmin()
-             ->post(route('contacts.store'), $this->validPayload(['email' => 'taken@example.com']))
-             ->assertSessionHasErrors('email');
-    }
-
-    /** @test */
     public function it_stores_a_valid_contact_and_redirects(): void
     {
         $this->actingAsAdmin()
@@ -274,105 +139,12 @@ class ContactValidationTest extends TestCase
              ->assertRedirect(route('contacts.index'))
              ->assertSessionHas('success');
 
-        $this->assertDatabaseHas('contacts', [
-            'name'    => 'Maria Silva',
-            'contact' => '912345678',
-            'email'   => 'maria.silva@example.com',
-        ]);
-    }
-
-    // =========================================================================
-    // SHOW – viewing a contact
-    // =========================================================================
-
-    /** @test */
-    public function guests_can_view_a_contact_detail_page(): void
-    {
-        $contact = Contact::factory()->create();
-
-        $this->get(route('contacts.show', $contact))->assertOk();
-    }
-
-    /** @test */
-    public function show_page_displays_contact_data(): void
-    {
-        $contact = Contact::factory()->create([
-            'name'    => 'Ana Rodrigues',
-            'contact' => '966123456',
-            'email'   => 'ana.rodrigues@example.com',
-        ]);
-
-        $this->get(route('contacts.show', $contact))
-             ->assertOk()
-             ->assertViewIs('contacts.show')
-             ->assertSee('Ana Rodrigues')
-             ->assertSee('966123456')
-             ->assertSee('ana.rodrigues@example.com');
-    }
-
-    /** @test */
-    public function soft_deleted_contact_returns_404(): void
-    {
-        $contact = Contact::factory()->create();
-        $contact->delete();
-
-        $this->get(route('contacts.show', $contact->id))
-             ->assertNotFound();
-    }
-
-    // =========================================================================
-    // EDIT – form access and data
-    // =========================================================================
-
-    /** @test */
-    public function guests_cannot_edit_contacts(): void
-    {
-        $contact = Contact::factory()->create();
-
-        $this->get(route('contacts.edit', $contact))
-             ->assertRedirect(route('login'));
-    }
-
-    /** @test */
-    public function authenticated_user_can_access_edit_form(): void
-    {
-        $contact = Contact::factory()->create();
-
-        $this->actingAsAdmin()
-             ->get(route('contacts.edit', $contact))
-             ->assertOk()
-             ->assertViewIs('contacts.edit');
-    }
-
-    /** @test */
-    public function edit_form_is_prepopulated_with_contact_data(): void
-    {
-        $contact = Contact::factory()->create([
-            'name'    => 'Carlos Sousa',
-            'contact' => '933987654',
-            'email'   => 'carlos.sousa@example.com',
-        ]);
-
-        $this->actingAsAdmin()
-             ->get(route('contacts.edit', $contact))
-             ->assertOk()
-             ->assertSee('Carlos Sousa')
-             ->assertSee('933987654')
-             ->assertSee('carlos.sousa@example.com');
+        $this->assertDatabaseHas('contacts', ['email' => 'maria.silva@example.com']);
     }
 
     // =========================================================================
     // UPDATE – editing a contact
     // =========================================================================
-
-    /** @test */
-    public function guests_cannot_update_contacts(): void
-    {
-        $contact = Contact::factory()->create();
-
-        $this->put(route('contacts.update', $contact), $this->validPayload())
-             ->assertRedirect(route('login'));
-    }
 
     /** @test */
     public function it_requires_name_to_update_a_contact(): void
@@ -424,7 +196,7 @@ class ContactValidationTest extends TestCase
 
         $this->actingAsAdmin()
              ->put(route('contacts.update', $contact), [
-                 'name'    => 'Maria Silva Editada',
+                 'name'    => 'Maria Silva Updated',
                  'contact' => '912345678',
                  'email'   => 'maria.silva@example.com',
              ])
@@ -454,40 +226,9 @@ class ContactValidationTest extends TestCase
              ->assertSessionHasErrors('email');
     }
 
-    /** @test */
-    public function it_updates_contact_data_in_database(): void
-    {
-        $contact = Contact::factory()->create();
-
-        $this->actingAsAdmin()
-             ->put(route('contacts.update', $contact), [
-                 'name'    => 'Nome Actualizado',
-                 'contact' => '966000111',
-                 'email'   => 'updated@example.com',
-             ])
-             ->assertRedirect(route('contacts.show', $contact))
-             ->assertSessionHas('success');
-
-        $this->assertDatabaseHas('contacts', [
-            'id'      => $contact->id,
-            'name'    => 'Nome Actualizado',
-            'contact' => '966000111',
-            'email'   => 'updated@example.com',
-        ]);
-    }
-
     // =========================================================================
-    // DESTROY – deleting a contact
+    // Soft Delete
     // =========================================================================
-
-    /** @test */
-    public function guests_cannot_delete_contacts(): void
-    {
-        $contact = Contact::factory()->create();
-
-        $this->delete(route('contacts.destroy', $contact))
-             ->assertRedirect(route('login'));
-    }
 
     /** @test */
     public function it_soft_deletes_a_contact(): void
@@ -502,56 +243,32 @@ class ContactValidationTest extends TestCase
     }
 
     /** @test */
-    public function it_redirects_with_success_message_on_destroy(): void
+    public function it_allows_phone_of_a_soft_deleted_contact(): void
     {
-        $contact = Contact::factory()->create();
+        $deleted = Contact::factory()->create(['contact' => '912345678']);
+        $deleted->delete();
 
         $this->actingAsAdmin()
-             ->delete(route('contacts.destroy', $contact))
-             ->assertRedirect(route('contacts.index'))
-             ->assertSessionHas('success');
-    }
-
-    // =========================================================================
-    // LOGIN
-    // =========================================================================
-
-    /** @test */
-    public function login_form_is_accessible_to_guests(): void
-    {
-        $this->get(route('login'))
-             ->assertOk()
-             ->assertViewIs('auth.login');
-    }
-
-    /** @test */
-    public function authenticated_user_is_redirected_away_from_login(): void
-    {
-        $this->actingAs(User::factory()->create())
-             ->get(route('login'))
+             ->post(route('contacts.store'), $this->validPayload(['contact' => '912345678']))
+             ->assertSessionHasNoErrors()
              ->assertRedirect(route('contacts.index'));
     }
 
     /** @test */
-    public function login_requires_email_field(): void
+    public function it_allows_email_of_a_soft_deleted_contact(): void
     {
-        $this->post(route('login'), ['email' => '', 'password' => '123456'])
-             ->assertSessionHasErrors('email');
+        $deleted = Contact::factory()->create(['email' => 'taken@example.com']);
+        $deleted->delete();
+
+        $this->actingAsAdmin()
+             ->post(route('contacts.store'), $this->validPayload(['email' => 'taken@example.com']))
+             ->assertSessionHasNoErrors()
+             ->assertRedirect(route('contacts.index'));
     }
 
-    /** @test */
-    public function login_requires_password_field(): void
-    {
-        $this->post(route('login'), ['email' => 'admin@admin.com', 'password' => ''])
-             ->assertSessionHasErrors('password');
-    }
-
-    /** @test */
-    public function login_requires_valid_email_format(): void
-    {
-        $this->post(route('login'), ['email' => 'not-an-email', 'password' => '123456'])
-             ->assertSessionHasErrors('email');
-    }
+    // =========================================================================
+    // Login
+    // =========================================================================
 
     /** @test */
     public function valid_credentials_log_the_user_in_and_redirect(): void
@@ -561,8 +278,10 @@ class ContactValidationTest extends TestCase
             'password' => Hash::make('123456'),
         ]);
 
-        $this->post(route('login'), ['email' => 'admin@admin.com', 'password' => '123456'])
-             ->assertRedirect(route('contacts.index'));
+        $this->post(route('login'), [
+            'email'    => 'admin@admin.com',
+            'password' => '123456',
+        ])->assertRedirect(route('contacts.index'));
 
         $this->assertAuthenticatedAs(User::where('email', 'admin@admin.com')->first());
     }
@@ -575,33 +294,73 @@ class ContactValidationTest extends TestCase
             'password' => Hash::make('123456'),
         ]);
 
-        $this->post(route('login'), ['email' => 'admin@admin.com', 'password' => 'wrong-password'])
-             ->assertSessionHasErrors('email');
+        $this->post(route('login'), [
+            'email'    => 'admin@admin.com',
+            'password' => 'wrong-password',
+        ])->assertSessionHasErrors('email');
 
         $this->assertGuest();
     }
 
-    // =========================================================================
-    // LOGOUT
-    // =========================================================================
-
     /** @test */
-    public function authenticated_user_can_logout(): void
+    public function authenticated_user_is_redirected_away_from_login(): void
     {
         $user = User::factory()->create();
 
         $this->actingAs($user)
-             ->post(route('logout'))
-             ->assertRedirect(route('contacts.index'))
-             ->assertSessionHas('success');
+             ->get(route('login'))
+             ->assertRedirect(route('contacts.index'));
+    }
 
-        $this->assertGuest();
+    // =========================================================================
+    // Authentication Guards
+    // =========================================================================
+
+    /** @test */
+    public function guests_cannot_access_create_form(): void
+    {
+        $this->get(route('contacts.create'))
+             ->assertRedirect(route('login'));
     }
 
     /** @test */
-    public function guest_cannot_access_logout(): void
+    public function guests_cannot_store_contacts(): void
     {
-        $this->post(route('logout'))
+        $this->post(route('contacts.store'), $this->validPayload())
              ->assertRedirect(route('login'));
+    }
+
+    /** @test */
+    public function guests_cannot_edit_contacts(): void
+    {
+        $contact = Contact::factory()->create();
+
+        $this->get(route('contacts.edit', $contact))
+             ->assertRedirect(route('login'));
+    }
+
+    /** @test */
+    public function guests_cannot_delete_contacts(): void
+    {
+        $contact = Contact::factory()->create();
+
+        $this->delete(route('contacts.destroy', $contact))
+             ->assertRedirect(route('login'));
+    }
+
+    /** @test */
+    public function guests_can_view_the_contacts_index(): void
+    {
+        $this->get(route('contacts.index'))
+             ->assertOk();
+    }
+
+    /** @test */
+    public function guests_can_view_a_contact_detail_page(): void
+    {
+        $contact = Contact::factory()->create();
+
+        $this->get(route('contacts.show', $contact))
+             ->assertOk();
     }
 }

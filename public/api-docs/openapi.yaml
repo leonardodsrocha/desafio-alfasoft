@@ -19,8 +19,9 @@ info:
 
     ## Soft-delete
     A exclusão de contatos é **reversível**: o registro não é removido do banco,
-    apenas recebe `deleted_at`. Contatos excluídos não aparecem em nenhuma listagem
-    e seus dados de telefone e e-mail continuam bloqueados para reutilização.
+    apenas recebe `deleted_at`. Contatos excluídos não aparecem em nenhuma listagem.
+    Após a exclusão, o número de telefone e o e-mail ficam **disponíveis** para
+    serem cadastrados em um novo contato.
 
   version: "1.0.0"
   contact:
@@ -99,12 +100,12 @@ components:
         contact:
           type: string
           pattern: '^\d{9}$'
-          description: Exatamente 9 dígitos numéricos. Deve ser único na tabela (inclusive entre excluídos).
+          description: Exatamente 9 dígitos numéricos. Deve ser único entre contatos ativos (excluídos via soft-delete liberam o valor).
           example: "912345678"
         email:
           type: string
           format: email
-          description: E-mail válido (RFC). Deve ser único na tabela (inclusive entre excluídos).
+          description: E-mail válido (RFC). Deve ser único entre contatos ativos (excluídos via soft-delete liberam o valor).
           example: maria.silva@example.com
         _token:
           type: string
@@ -475,7 +476,7 @@ paths:
         Consequências do soft-delete:
         - O contato desaparece de todas as listagens e buscas
         - A página de detalhe (`/contacts/{id}`) passa a retornar 404
-        - Os dados de telefone e e-mail continuam bloqueados para reutilização
+        - O número de telefone e o e-mail ficam disponíveis para reutilização
 
         HTML forms não suportam DELETE nativamente — o Laravel usa o campo
         oculto `_method=DELETE` enviado como POST.

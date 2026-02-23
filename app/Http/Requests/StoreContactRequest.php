@@ -22,10 +22,9 @@ class StoreContactRequest extends ContactRequest
     /**
      * Regras de validação para criar um novo contato.
      *
-     * A verificação de unicidade de telefone e e-mail não inclui a cláusula
-     * whereNull('deleted_at'), por isso abrange também registros em soft-delete.
-     * Essa decisão é intencional — impede a reutilização de dados de contatos
-     * que foram excluídos, evitando colisões silenciosas na agenda.
+     * A verificação de unicidade de telefone e e-mail usa whereNull('deleted_at')
+     * para ignorar registros excluídos via soft-delete. Isso permite que os dados
+     * de um contato excluído sejam reutilizados em um novo cadastro.
      *
      * @return array<string, array<int, mixed>>
      */
@@ -33,8 +32,8 @@ class StoreContactRequest extends ContactRequest
     {
         return [
             'name'    => ['required', 'string', 'min:6'],
-            'contact' => ['required', 'digits:9', Rule::unique('contacts', 'contact')],
-            'email'   => ['required', 'email:rfc', Rule::unique('contacts', 'email')],
+            'contact' => ['required', 'digits:9', Rule::unique('contacts', 'contact')->whereNull('deleted_at')],
+            'email'   => ['required', 'email:rfc', Rule::unique('contacts', 'email')->whereNull('deleted_at')],
         ];
     }
 }
