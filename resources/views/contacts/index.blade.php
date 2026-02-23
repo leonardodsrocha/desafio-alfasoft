@@ -89,7 +89,9 @@
                                     <button type="button"
                                             class="btn btn-sm btn-outline-danger action-btn"
                                             title="Delete contact"
-                                            onclick="confirmDelete({{ $contact->id }}, '{{ addslashes($contact->name) }}')">
+                                            data-contact-id="{{ $contact->id }}"
+                                            data-contact-name="{{ $contact->name }}"
+                                            onclick="confirmDelete(this)">
                                         <i class="bi bi-trash me-1"></i>Delete
                                     </button>
                                 </form>
@@ -118,7 +120,10 @@
 
 @push('scripts')
 <script>
-    function confirmDelete(id, name) {
+    function confirmDelete(button) {
+        const id   = button.dataset.contactId;
+        const name = button.dataset.contactName;
+
         if (confirm(`Are you sure you want to delete "${name}"?\nThis action cannot be undone.`)) {
             document.getElementById('delete-form-' + id).submit();
         }
