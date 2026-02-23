@@ -78,6 +78,12 @@
                             <i class="bi bi-person-plus me-1"></i>New Contact
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link {{ request()->routeIs('activity-logs.index') ? 'active' : '' }}"
+                           href="{{ route('activity-logs.index') }}">
+                            <i class="bi bi-journal-text me-1"></i>Activity Log
+                        </a>
+                    </li>
                     @endauth
                 </ul>
 
