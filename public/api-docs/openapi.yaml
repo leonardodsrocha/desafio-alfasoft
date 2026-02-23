@@ -269,14 +269,14 @@ paths:
                 - _token
       responses:
         "302":
-          description: Sessão encerrada — redireciona para `/contacts`.
+          description: |
+            Sessão encerrada com sucesso — redireciona para `/contacts`.
+            Se o usuário não estiver autenticado, redireciona para `/login`.
           headers:
             Location:
               schema:
                 type: string
                 example: /contacts
-        "302 (guest)":
-          description: Usuário não autenticado — redireciona para `/login`.
 
   # --------------------------------------------------------------------------
   # Contatos — leitura pública
@@ -351,7 +351,7 @@ paths:
             text/html:
               schema:
                 $ref: '#/components/schemas/ValidationError'
-        "302 (guest)":
+        "401":
           description: Não autenticado — redireciona para `/login`.
 
   /contacts/create:
@@ -460,7 +460,7 @@ paths:
             text/html:
               schema:
                 $ref: '#/components/schemas/ValidationError'
-        "302 (guest)":
+        "401":
           description: Não autenticado — redireciona para `/login`.
         "404":
           description: Contato não encontrado.
@@ -514,7 +514,7 @@ paths:
               schema:
                 type: string
                 example: /contacts
-        "302 (guest)":
+        "401":
           description: Não autenticado — redireciona para `/login`.
         "404":
           description: Contato não encontrado.
