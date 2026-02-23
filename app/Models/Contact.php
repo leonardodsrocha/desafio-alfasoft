@@ -15,8 +15,4 @@ class Contact extends Model
         'contact',
         'email',
     ];
-
-    protected $casts = [
-        'deleted_at' => 'datetime',
-    ];
 }
