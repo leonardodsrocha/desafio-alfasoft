@@ -242,6 +242,74 @@ class ContactValidationTest extends TestCase
         $this->assertSoftDeleted('contacts', ['id' => $contact->id]);
     }
 
+    /** @test */
+    public function it_rejects_phone_of_a_soft_deleted_contact(): void
+    {
+        $deleted = Contact::factory()->create(['contact' => '912345678']);
+        $deleted->delete();
+
+        $this->actingAsAdmin()
+             ->post(route('contacts.store'), $this->validPayload(['contact' => '912345678']))
+             ->assertSessionHasErrors('contact');
+    }
+
+    /** @test */
+    public function it_rejects_email_of_a_soft_deleted_contact(): void
+    {
+        $deleted = Contact::factory()->create(['email' => 'taken@example.com']);
+        $deleted->delete();
+
+        $this->actingAsAdmin()
+             ->post(route('contacts.store'), $this->validPayload(['email' => 'taken@example.com']))
+             ->assertSessionHasErrors('email');
+    }
+
+    // =========================================================================
+    // Login
+    // =========================================================================
+
+    /** @test */
+    public function valid_credentials_log_the_user_in_and_redirect(): void
+    {
+        User::factory()->create([
+            'email'    => 'admin@admin.com',
+            'password' => Hash::make('123456'),
+        ]);
+
+        $this->post(route('login'), [
+            'email'    => 'admin@admin.com',
+            'password' => '123456',
+        ])->assertRedirect(route('contacts.index'));
+
+        $this->assertAuthenticatedAs(User::where('email', 'admin@admin.com')->first());
+    }
+
+    /** @test */
+    public function invalid_credentials_return_validation_error(): void
+    {
+        User::factory()->create([
+            'email'    => 'admin@admin.com',
+            'password' => Hash::make('123456'),
+        ]);
+
+        $this->post(route('login'), [
+            'email'    => 'admin@admin.com',
+            'password' => 'wrong-password',
+        ])->assertSessionHasErrors('email');
+
+        $this->assertGuest();
+    }
+
+    /** @test */
+    public function authenticated_user_is_redirected_away_from_login(): void
+    {
+        $user = User::factory()->create();
+
+        $this->actingAs($user)
+             ->get(route('login'))
+             ->assertRedirect(route('contacts.index'));
+    }
+
     // =========================================================================
     // Authentication Guards
     // =========================================================================
