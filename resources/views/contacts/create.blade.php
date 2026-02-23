@@ -54,7 +54,10 @@
                                class="form-control @error('contact') is-invalid @enderror"
                                value="{{ old('contact') }}"
                                placeholder="e.g. 912345678"
-                               maxlength="9">
+                               inputmode="numeric"
+                               pattern="[0-9]*"
+                               maxlength="9"
+                               oninput="this.value=this.value.replace(/[^0-9]/g,'')">
                         @error('contact')
                         <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
