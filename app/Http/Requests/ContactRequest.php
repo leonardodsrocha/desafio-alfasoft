@@ -38,7 +38,7 @@ abstract class ContactRequest extends FormRequest
      * A regra `digits` valida simultaneamente o comprimento e que o valor
      * é numérico, mas a mensagem padrão pode gerar confusão se o usuário
      * digitar letras. A mensagem personalizada torna explícito que o campo
-     * aceita apenas dígitos e com comprimento exacto.
+     * aceita apenas dígitos e com comprimento exato.
      *
      * @return array<string, string>
      */

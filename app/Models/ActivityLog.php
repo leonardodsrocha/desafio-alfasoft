@@ -63,9 +63,9 @@ class ActivityLog extends Model
     public function actionLabel(): string
     {
         return match ($this->action) {
-            'created' => 'Criado',
-            'updated' => 'Atualizado',
-            'deleted' => 'Excluído',
+            'created' => 'Created',
+            'updated' => 'Updated',
+            'deleted' => 'Deleted',
             default   => ucfirst($this->action),
         };
     }

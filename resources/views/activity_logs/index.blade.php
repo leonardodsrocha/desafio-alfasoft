@@ -8,7 +8,7 @@
         <i class="bi bi-journal-text me-2 text-primary"></i>Activity Log
     </h1>
     <span class="text-muted small">
-        Histórico completo de criações, edições e exclusões de contatos.
+        Full history of contact creations, edits and deletions.
     </span>
 </div>
 
@@ -16,19 +16,19 @@
 <div class="mb-4 d-flex gap-2 flex-wrap">
     <a href="{{ route('activity-logs.index') }}"
        class="btn btn-sm {{ !$filter ? 'btn-dark' : 'btn-outline-secondary' }}">
-        <i class="bi bi-list me-1"></i>Todos
+        <i class="bi bi-list me-1"></i>All
     </a>
     <a href="{{ route('activity-logs.index', ['action' => 'created']) }}"
        class="btn btn-sm {{ $filter === 'created' ? 'btn-success' : 'btn-outline-success' }}">
-        <i class="bi bi-plus-circle me-1"></i>Criações
+        <i class="bi bi-plus-circle me-1"></i>Creations
     </a>
     <a href="{{ route('activity-logs.index', ['action' => 'updated']) }}"
        class="btn btn-sm {{ $filter === 'updated' ? 'btn-warning text-dark' : 'btn-outline-warning' }}">
-        <i class="bi bi-pencil me-1"></i>Edições
+        <i class="bi bi-pencil me-1"></i>Edits
     </a>
     <a href="{{ route('activity-logs.index', ['action' => 'deleted']) }}"
        class="btn btn-sm {{ $filter === 'deleted' ? 'btn-danger' : 'btn-outline-danger' }}">
-        <i class="bi bi-trash me-1"></i>Exclusões
+        <i class="bi bi-trash me-1"></i>Deletions
     </a>
 </div>
 
@@ -36,7 +36,7 @@
 <div class="card shadow-sm">
     <div class="card-body text-center py-5">
         <i class="bi bi-journal-x display-3 text-muted"></i>
-        <p class="mt-3 mb-0 text-muted fs-5">Nenhuma atividade registrada.</p>
+        <p class="mt-3 mb-0 text-muted fs-5">No activity recorded.</p>
     </div>
 </div>
 @else
@@ -46,12 +46,12 @@
             <table class="table table-hover align-middle mb-0">
                 <thead>
                     <tr>
-                        <th class="ps-3" style="width:130px">Ação</th>
-                        <th>Contato</th>
-                        <th>Usuário</th>
+                        <th class="ps-3" style="width:130px">Action</th>
+                        <th>Contact</th>
+                        <th>User</th>
                         <th>IP</th>
-                        <th style="width:170px">Data / Hora</th>
-                        <th class="text-center" style="width:80px">Detalhes</th>
+                        <th style="width:170px">Date / Time</th>
+                        <th class="text-center" style="width:80px">Details</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -84,7 +84,7 @@
                             @if($log->user_name)
                                 <i class="bi bi-person me-1 text-muted"></i>{{ $log->user_name }}
                             @else
-                                <span class="text-muted fst-italic">Sistema</span>
+                                <span class="text-muted fst-italic">System</span>
                             @endif
                         </td>
 
@@ -106,7 +106,7 @@
                                     type="button"
                                     data-bs-toggle="collapse"
                                     data-bs-target="#log-detail-{{ $log->id }}"
-                                    title="Ver detalhes">
+                                    title="View details">
                                 <i class="bi bi-chevron-down"></i>
                             </button>
                             @else
@@ -123,7 +123,7 @@
                                 @if($log->old_values)
                                 <div class="col-md-6">
                                     <p class="small fw-semibold text-danger mb-2">
-                                        <i class="bi bi-dash-circle me-1"></i>Antes
+                                        <i class="bi bi-dash-circle me-1"></i>Before
                                     </p>
                                     <table class="table table-sm table-bordered mb-0 bg-white">
                                         @foreach($log->old_values as $field => $value)
@@ -140,7 +140,7 @@
                                 <div class="col-md-6">
                                     <p class="small fw-semibold text-success mb-2">
                                         <i class="bi bi-plus-circle me-1"></i>
-                                        {{ $log->action === 'created' ? 'Valores registrados' : 'Depois' }}
+                                        {{ $log->action === 'created' ? 'Registered values' : 'After' }}
                                     </p>
                                     <table class="table table-sm table-bordered mb-0 bg-white">
                                         @foreach($log->new_values as $field => $value)

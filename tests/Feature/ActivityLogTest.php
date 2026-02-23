@@ -214,7 +214,7 @@ class ActivityLogTest extends TestCase
         $this->actingAs($this->admin())
              ->get(route('activity-logs.index'))
              ->assertSee($contact->name)
-             ->assertSee('Criado');
+             ->assertSee('Created');
     }
 
     /** @test */
