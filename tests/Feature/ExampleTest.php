@@ -10,12 +10,20 @@ class ExampleTest extends TestCase
     use RefreshDatabase;
 
     /**
-     * The home page (contacts index) returns a successful response.
+     * The root URL redirects to the contacts list.
      */
-    public function test_the_application_returns_a_successful_response(): void
+    public function test_root_redirects_to_contacts(): void
     {
-        $response = $this->get('/');
+        $this->get('/')
+             ->assertRedirect('/contacts');
+    }
 
-        $response->assertStatus(200);
+    /**
+     * The contacts index page returns a successful response.
+     */
+    public function test_contacts_index_returns_ok(): void
+    {
+        $this->get('/contacts')
+             ->assertOk();
     }
 }

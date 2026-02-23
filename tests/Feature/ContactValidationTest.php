@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Models\Contact;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class ContactValidationTest extends TestCase
@@ -19,7 +20,7 @@ class ContactValidationTest extends TestCase
     {
         $admin = User::factory()->create([
             'email'    => 'admin@admin.com',
-            'password' => bcrypt('123456'),
+            'password' => Hash::make('123456'),
         ]);
 
         return $this->actingAs($admin);
