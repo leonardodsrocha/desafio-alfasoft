@@ -10,6 +10,9 @@ use Illuminate\Support\Facades\Route;
 |--------------------------------------------------------------------------
 */
 
+// Root redirect → canonical contacts list
+Route::redirect('/', '/contacts')->name('home');
+
 // Authentication routes
 Route::middleware('guest')->group(function () {
     Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
@@ -20,12 +23,12 @@ Route::post('/logout', [LoginController::class, 'logout'])
     ->middleware('auth')
     ->name('logout');
 
-// Public routes – anyone can view contacts list and detail
-Route::get('/', [ContactController::class, 'index'])->name('contacts.index');
+// Public routes – anyone can view the contacts list and individual detail
+Route::get('/contacts', [ContactController::class, 'index'])->name('contacts.index');
 
-// Protected routes – authenticated users only
-// NOTE: contacts.create must be defined BEFORE contacts.show/{contact}
-// to prevent "create" being captured as a route model binding slug.
+// Protected routes – authenticated users only.
+// IMPORTANT: contacts.create is declared BEFORE contacts.show/{contact}
+// so that the literal segment "create" is never treated as a model-binding key.
 Route::middleware('auth')->group(function () {
     Route::get('/contacts/create', [ContactController::class, 'create'])->name('contacts.create');
     Route::post('/contacts', [ContactController::class, 'store'])->name('contacts.store');
@@ -34,5 +37,5 @@ Route::middleware('auth')->group(function () {
     Route::delete('/contacts/{contact}', [ContactController::class, 'destroy'])->name('contacts.destroy');
 });
 
-// Public detail page (defined after /contacts/create to avoid conflict)
+// Public detail page – defined after /contacts/create to avoid collision
 Route::get('/contacts/{contact}', [ContactController::class, 'show'])->name('contacts.show');
