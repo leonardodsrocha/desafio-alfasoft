@@ -1,0 +1,568 @@
+openapi: 3.0.3
+
+info:
+  title: Contact Management
+  description: |
+    Aplicação web CRUD em Laravel 10 para gerenciar uma agenda de contatos.
+
+    ## Autenticação
+    A aplicação usa **sessões PHP** (cookies de sessão). Para acessar os endpoints
+    protegidos, é necessário primeiro fazer login via `POST /login` e incluir o
+    cookie de sessão nas requisições subsequentes.
+
+    Todas as requisições de estado mutante (POST, PUT, DELETE) exigem o token
+    **CSRF** no campo `_token` do corpo da requisição ou no header `X-CSRF-TOKEN`.
+
+    ### Credenciais padrão
+    - **E-mail:** `admin@admin.com`
+    - **Senha:** `123456`
+
+    ## Soft-delete
+    A exclusão de contatos é **reversível**: o registro não é removido do banco,
+    apenas recebe `deleted_at`. Contatos excluídos não aparecem em nenhuma listagem
+    e seus dados de telefone e e-mail continuam bloqueados para reutilização.
+
+  version: "1.0.0"
+  contact:
+    name: Leonardo Rocha
+    url: https://github.com/leonardodsrocha/desafio-alfasoft
+
+servers:
+  - url: https://leonardorocha-lv.recruitment.alfasoft.pt
+    description: Ambiente de produção (Alfasoft)
+  - url: http://localhost:8000
+    description: Servidor de desenvolvimento local
+
+tags:
+  - name: Contatos
+    description: Operações de leitura e escrita na agenda de contatos
+  - name: Autenticação
+    description: Login e logout por sessão
+
+# ---------------------------------------------------------------------------
+# Schemas reutilizáveis
+# ---------------------------------------------------------------------------
+components:
+  schemas:
+
+    Contact:
+      type: object
+      description: Entidade de contato conforme a estrutura da tabela `contacts`.
+      properties:
+        id:
+          type: integer
+          readOnly: true
+          example: 1
+        name:
+          type: string
+          minLength: 6
+          example: Maria Silva
+        contact:
+          type: string
+          description: Número de telefone — exatamente 9 dígitos numéricos.
+          pattern: '^\d{9}$'
+          example: "912345678"
+        email:
+          type: string
+          format: email
+          example: maria.silva@example.com
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+          example: "2026-02-23T14:00:00.000000Z"
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+          example: "2026-02-23T15:30:00.000000Z"
+        deleted_at:
+          type: string
+          format: date-time
+          nullable: true
+          readOnly: true
+          description: Preenchido quando o contato é excluído (soft-delete). Null enquanto ativo.
+          example: null
+      required:
+        - name
+        - contact
+        - email
+
+    ContactInput:
+      type: object
+      description: Corpo da requisição para criar ou editar um contato.
+      properties:
+        name:
+          type: string
+          minLength: 6
+          example: Maria Silva
+        contact:
+          type: string
+          pattern: '^\d{9}$'
+          description: Exatamente 9 dígitos numéricos. Deve ser único na tabela (inclusive entre excluídos).
+          example: "912345678"
+        email:
+          type: string
+          format: email
+          description: E-mail válido (RFC). Deve ser único na tabela (inclusive entre excluídos).
+          example: maria.silva@example.com
+        _token:
+          type: string
+          description: Token CSRF gerado pela sessão Laravel. Obrigatório em todos os formulários POST/PUT/DELETE.
+          example: "abc123xyz..."
+      required:
+        - name
+        - contact
+        - email
+        - _token
+
+    ValidationError:
+      type: object
+      description: |
+        Objeto retornado na sessão (via flash) quando a validação falha.
+        Em HTML, o Laravel redireciona de volta com `errors` e `old` na sessão.
+      properties:
+        message:
+          type: string
+          example: "The given data was invalid."
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+          example:
+            name: ["The name must be at least 6 characters."]
+            contact: ["The phone must be exactly 9 digits."]
+            email: ["The email has already been taken."]
+
+  securitySchemes:
+    SessionCookie:
+      type: apiKey
+      in: cookie
+      name: laravel_session
+      description: |
+        Cookie de sessão gerado pelo Laravel após login bem-sucedido.
+        Obtido via `POST /login`. Inclua automaticamente pelo browser ou
+        gerencie-o manualmente em testes com ferramentas como cURL.
+
+# ---------------------------------------------------------------------------
+# Paths
+# ---------------------------------------------------------------------------
+paths:
+
+  # --------------------------------------------------------------------------
+  # Autenticação
+  # --------------------------------------------------------------------------
+
+  /login:
+    get:
+      tags: [Autenticação]
+      summary: Exibir formulário de login
+      description: |
+        Retorna a página HTML com o formulário de autenticação.
+        Rota protegida pelo middleware `guest` — usuários já autenticados
+        são redirecionados para `/contacts`.
+      operationId: showLoginForm
+      responses:
+        "200":
+          description: Página HTML do formulário de login.
+          content:
+            text/html:
+              schema:
+                type: string
+        "302":
+          description: Usuário já autenticado — redireciona para `/contacts`.
+          headers:
+            Location:
+              schema:
+                type: string
+                example: /contacts
+
+    post:
+      tags: [Autenticação]
+      summary: Processar autenticação
+      description: |
+        Valida as credenciais, inicia a sessão e redireciona para a página
+        originalmente solicitada (ou `/contacts`).
+
+        **Throttle:** máximo de 10 tentativas por minuto por IP.
+        Após o limite, retorna HTTP 429.
+
+        Em caso de credenciais inválidas, o erro é atribuído ao campo `email`
+        (não ao `password`) para não revelar qual campo está errado.
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: admin@admin.com
+                password:
+                  type: string
+                  format: password
+                  example: "123456"
+                remember:
+                  type: boolean
+                  description: Marcar para manter a sessão ativa após fechar o browser.
+                  example: false
+                _token:
+                  type: string
+                  description: Token CSRF obrigatório.
+              required:
+                - email
+                - password
+                - _token
+      responses:
+        "302":
+          description: Login efetuado — redireciona para a página pretendida ou `/contacts`.
+          headers:
+            Location:
+              schema:
+                type: string
+                example: /contacts
+            Set-Cookie:
+              description: Cookie de sessão `laravel_session` atualizado.
+              schema:
+                type: string
+        "422":
+          description: Validação falhou (campo obrigatório ausente ou formato de e-mail inválido).
+          content:
+            text/html:
+              schema:
+                type: string
+        "401":
+          description: Credenciais incorretas — redireciona de volta com erro no campo `email`.
+          content:
+            text/html:
+              schema:
+                type: string
+        "429":
+          description: Muitas tentativas — throttle atingido (10/min).
+
+  /logout:
+    post:
+      tags: [Autenticação]
+      summary: Encerrar sessão
+      description: |
+        Invalida a sessão atual, regenera o token CSRF e redireciona para
+        `/contacts`. Requer autenticação — guests são redirecionados para `/login`.
+      operationId: logout
+      security:
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                _token:
+                  type: string
+                  description: Token CSRF.
+              required:
+                - _token
+      responses:
+        "302":
+          description: Sessão encerrada — redireciona para `/contacts`.
+          headers:
+            Location:
+              schema:
+                type: string
+                example: /contacts
+        "302 (guest)":
+          description: Usuário não autenticado — redireciona para `/login`.
+
+  # --------------------------------------------------------------------------
+  # Contatos — leitura pública
+  # --------------------------------------------------------------------------
+
+  /contacts:
+    get:
+      tags: [Contatos]
+      summary: Listar contatos (público)
+      description: |
+        Retorna a página HTML com a lista paginada de contatos ativos (não excluídos).
+        O parâmetro `search` filtra por qualquer um dos três campos visíveis
+        (name, contact, email) usando correspondência parcial (`LIKE %term%`).
+        A paginação preserva o parâmetro `search` ao mudar de página.
+      operationId: indexContacts
+      parameters:
+        - in: query
+          name: search
+          schema:
+            type: string
+          description: Termo para filtrar por nome, telefone ou e-mail.
+          example: "Maria"
+        - in: query
+          name: page
+          schema:
+            type: integer
+            minimum: 1
+          description: Número da página (10 contatos por página).
+          example: 1
+      responses:
+        "200":
+          description: Página HTML com a lista de contatos.
+          content:
+            text/html:
+              schema:
+                type: string
+
+    post:
+      tags: [Contatos]
+      summary: Criar novo contato
+      description: |
+        Persiste um novo contato após validação pelo `StoreContactRequest`.
+        Se a validação falhar, redireciona de volta com os erros e os dados
+        antigos na sessão. Em caso de sucesso, redireciona para `/contacts`
+        com uma mensagem flash de sucesso.
+      operationId: storeContact
+      security:
+        - SessionCookie: []
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ContactInput'
+      responses:
+        "302":
+          description: Contato criado — redireciona para `/contacts`.
+          headers:
+            Location:
+              schema:
+                type: string
+                example: /contacts
+        "422":
+          description: |
+            Validação falhou — redireciona de volta com erros na sessão.
+
+            Erros possíveis por campo:
+            - `name`: obrigatório, mínimo 6 caracteres
+            - `contact`: obrigatório, exatamente 9 dígitos, único (incl. soft-deleted)
+            - `email`: obrigatório, formato RFC, único (incl. soft-deleted)
+          content:
+            text/html:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        "302 (guest)":
+          description: Não autenticado — redireciona para `/login`.
+
+  /contacts/create:
+    get:
+      tags: [Contatos]
+      summary: Exibir formulário de criação
+      description: |
+        Retorna a página HTML com o formulário para adicionar um novo contato.
+        Acessível apenas por usuários autenticados.
+
+        **Nota de roteamento:** esta rota é declarada antes de `/contacts/{contact}`
+        para evitar que o segmento literal "create" seja interpretado como um ID
+        pelo route-model binding do Laravel.
+      operationId: createContact
+      security:
+        - SessionCookie: []
+      responses:
+        "200":
+          description: Página HTML do formulário de criação.
+          content:
+            text/html:
+              schema:
+                type: string
+        "302":
+          description: Não autenticado — redireciona para `/login`.
+
+  /contacts/{id}:
+    get:
+      tags: [Contatos]
+      summary: Exibir detalhe do contato (público)
+      description: |
+        Retorna a página HTML com todos os campos do contato: ID, nome, telefone,
+        e-mail, data de criação e data de atualização.
+
+        Usa **route-model binding** do Laravel. Se o contato não existir ou tiver
+        sido excluído via soft-delete, retorna HTTP 404 automaticamente.
+      operationId: showContact
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: ID do contato.
+          example: 1
+      responses:
+        "200":
+          description: Página HTML com o detalhe do contato.
+          content:
+            text/html:
+              schema:
+                type: string
+        "404":
+          description: Contato não encontrado ou excluído (soft-delete).
+
+    put:
+      tags: [Contatos]
+      summary: Atualizar contato
+      description: |
+        Aplica as alterações no contato identificado pelo `id` após validação
+        pelo `UpdateContactRequest`.
+
+        As regras de unicidade de telefone e e-mail ignoram o próprio registro
+        do contato (via `Rule::unique()->ignore($id)`) para não bloquear o envio
+        quando os valores não foram alterados.
+
+        HTML forms não suportam PUT nativamente — o Laravel usa o campo oculto
+        `_method=PUT` enviado como POST.
+      operationId: updateContact
+      security:
+        - SessionCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              allOf:
+                - $ref: '#/components/schemas/ContactInput'
+                - type: object
+                  properties:
+                    _method:
+                      type: string
+                      enum: [PUT]
+                      description: Campo de spoofing de método HTTP exigido pelo Laravel.
+                      example: PUT
+                  required:
+                    - _method
+      responses:
+        "302":
+          description: Contato atualizado — redireciona para `/contacts/{id}`.
+          headers:
+            Location:
+              schema:
+                type: string
+                example: /contacts/1
+        "422":
+          description: Validação falhou — redireciona de volta com erros na sessão.
+          content:
+            text/html:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+        "302 (guest)":
+          description: Não autenticado — redireciona para `/login`.
+        "404":
+          description: Contato não encontrado.
+
+    delete:
+      tags: [Contatos]
+      summary: Excluir contato (soft-delete)
+      description: |
+        Marca o contato como excluído preenchendo `deleted_at` com a data/hora
+        atual. O registro permanece no banco — não é uma exclusão física.
+
+        Consequências do soft-delete:
+        - O contato desaparece de todas as listagens e buscas
+        - A página de detalhe (`/contacts/{id}`) passa a retornar 404
+        - Os dados de telefone e e-mail continuam bloqueados para reutilização
+
+        HTML forms não suportam DELETE nativamente — o Laravel usa o campo
+        oculto `_method=DELETE` enviado como POST.
+      operationId: destroyContact
+      security:
+        - SessionCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              type: object
+              properties:
+                _token:
+                  type: string
+                  description: Token CSRF.
+                _method:
+                  type: string
+                  enum: [DELETE]
+                  example: DELETE
+              required:
+                - _token
+                - _method
+      responses:
+        "302":
+          description: Contato excluído — redireciona para `/contacts`.
+          headers:
+            Location:
+              schema:
+                type: string
+                example: /contacts
+        "302 (guest)":
+          description: Não autenticado — redireciona para `/login`.
+        "404":
+          description: Contato não encontrado.
+
+  /contacts/{id}/edit:
+    get:
+      tags: [Contatos]
+      summary: Exibir formulário de edição
+      description: |
+        Retorna a página HTML com o formulário de edição pré-preenchido com os
+        dados atuais do contato. Acessível apenas por usuários autenticados.
+      operationId: editContact
+      security:
+        - SessionCookie: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        "200":
+          description: Página HTML do formulário de edição com valores atuais.
+          content:
+            text/html:
+              schema:
+                type: string
+        "302":
+          description: Não autenticado — redireciona para `/login`.
+        "404":
+          description: Contato não encontrado ou excluído.
+
+  # --------------------------------------------------------------------------
+  # Redirect raiz
+  # --------------------------------------------------------------------------
+
+  /:
+    get:
+      tags: [Contatos]
+      summary: Redirect para lista de contatos
+      description: Redireciona permanentemente (302) para `/contacts`.
+      operationId: home
+      responses:
+        "302":
+          description: Redirect para `/contacts`.
+          headers:
+            Location:
+              schema:
+                type: string
+                example: /contacts

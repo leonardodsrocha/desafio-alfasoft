@@ -1,66 +1,243 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Contact Management
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Aplicação web CRUD desenvolvida em Laravel 10 para gerenciar uma agenda de contatos.
 
-## About Laravel
+> **Desafio técnico** — Alfasoft · Fevereiro 2026
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Sumário
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- [Visão geral](#visão-geral)
+- [Stack](#stack)
+- [Funcionalidades](#funcionalidades)
+- [Pré-requisitos](#pré-requisitos)
+- [Instalação local](#instalação-local)
+- [Credenciais padrão](#credenciais-padrão)
+- [Testes](#testes)
+- [Rotas](#rotas)
+- [Documentação da API (Swagger)](#documentação-da-api-swagger)
+- [Estrutura do projeto](#estrutura-do-projeto)
+- [Deploy](#deploy)
 
-## Learning Laravel
+---
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Visão geral
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+Sistema de agenda com autenticação por sessão. Qualquer visitante pode ver a lista e o detalhe dos contatos; criar, editar e excluir exige login. A exclusão é feita via **soft-delete** do Laravel — o registro não sai do banco, apenas recebe `deleted_at`, mantendo as restrições de unicidade de telefone e e-mail ativas mesmo após a exclusão.
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+**Demo online:** https://leonardorocha-lv.recruitment.alfasoft.pt
+**Repositório:** https://github.com/leonardodsrocha/desafio-alfasoft
 
-## Laravel Sponsors
+---
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+## Stack
 
-### Premium Partners
+| Camada | Tecnologia |
+|--------|-----------|
+| Backend | PHP 8.1 + Laravel 10 |
+| Banco (produção) | MariaDB (MySQL) |
+| Banco (testes) | SQLite in-memory |
+| Frontend | Bootstrap 5.3 via CDN + Bootstrap Icons |
+| Autenticação | Sessions (Laravel Auth) |
+| Validação | Form Requests |
+| Testes | PHPUnit 10 (57 testes, 125 asserções) |
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+---
 
-## Contributing
+## Funcionalidades
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+- **Listagem pública** de contatos com paginação (10 por página) e busca por nome, telefone ou e-mail
+- **Detalhe** do contato em página própria (não popup)
+- **Criação** de novo contato com validação server-side
+- **Edição** de contato existente com pré-preenchimento do formulário
+- **Exclusão** via soft-delete com confirmação no browser
+- **Autenticação** por sessão (login/logout) com proteção CSRF e throttle no login
+- **Guards de acesso**: visitantes só leem; as operações de escrita exigem login
 
-## Code of Conduct
+### Regras de negócio
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+| Campo | Regra |
+|-------|-------|
+| `name` | string obrigatório, mínimo 6 caracteres |
+| `contact` | exatamente 9 dígitos numéricos, único na tabela (inclusive soft-deleted) |
+| `email` | e-mail válido (RFC), único na tabela (inclusive soft-deleted) |
 
-## Security Vulnerabilities
+---
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Pré-requisitos
 
-## License
+- PHP >= 8.1
+- Composer
+- SQLite (para desenvolvimento local) ou MySQL/MariaDB
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+---
+
+## Instalação local
+
+```bash
+# 1. Clonar o repositório
+git clone https://github.com/leonardodsrocha/desafio-alfasoft.git
+cd desafio-alfasoft
+
+# 2. Instalar dependências PHP
+composer install
+
+# 3. Criar o arquivo de ambiente
+cp .env.example .env
+
+# 4. Gerar a chave da aplicação
+php artisan key:generate
+
+# 5. Criar o banco SQLite (padrão do .env.example)
+touch database/database.sqlite
+
+# 6. Rodar as migrations e os seeders
+php artisan migrate --seed
+
+# 7. Subir o servidor de desenvolvimento
+php artisan serve
+```
+
+Acesse em http://localhost:8000.
+
+---
+
+## Credenciais padrão
+
+| Campo | Valor |
+|-------|-------|
+| E-mail | `admin@admin.com` |
+| Senha | `123456` |
+
+Criado pelo `AdminUserSeeder` via `updateOrCreate` — rodar os seeders mais de uma vez não duplica o registro.
+
+---
+
+## Testes
+
+A suite usa SQLite in-memory (configurado no `phpunit.xml`) e não afeta o banco de dados local.
+
+```bash
+php artisan test
+```
+
+```
+Tests:    57 passed (125 assertions)
+Duration: ~2s
+```
+
+### Cobertura dos testes
+
+| Área | Testes |
+|------|--------|
+| Index — listagem e busca | 8 |
+| Create — acesso ao formulário | 2 |
+| Store — criação e validação | 14 |
+| Show — detalhe e 404 para soft-deleted | 3 |
+| Edit — acesso e pré-preenchimento | 3 |
+| Update — edição e validação | 8 |
+| Destroy — soft-delete | 3 |
+| Login — formulário, validação, credenciais | 6 |
+| Logout — sessão e guard | 2 |
+| Unit — modelo Contact | 3 |
+
+---
+
+## Rotas
+
+| Método | URL | Acesso | Descrição |
+|--------|-----|--------|-----------|
+| `GET` | `/` | Público | Redirect para `/contacts` |
+| `GET` | `/contacts` | Público | Lista paginada com busca opcional |
+| `GET` | `/contacts/{id}` | Público | Detalhe do contato |
+| `GET` | `/login` | Guest | Formulário de login |
+| `POST` | `/login` | Guest | Processar autenticação (throttle: 10/min) |
+| `POST` | `/logout` | Auth | Encerrar sessão |
+| `GET` | `/contacts/create` | Auth | Formulário de criação |
+| `POST` | `/contacts` | Auth | Salvar novo contato |
+| `GET` | `/contacts/{id}/edit` | Auth | Formulário de edição |
+| `PUT` | `/contacts/{id}` | Auth | Atualizar contato |
+| `DELETE` | `/contacts/{id}` | Auth | Soft-delete do contato |
+
+---
+
+## Documentação da API (Swagger)
+
+A documentação interativa está disponível em:
+
+```
+/api-docs
+```
+
+Gerada com **OpenAPI 3.0** e servida via Swagger UI. O spec completo está em [`public/api-docs/openapi.yaml`](public/api-docs/openapi.yaml).
+
+---
+
+## Estrutura do projeto
+
+```
+app/
+├── Http/
+│   ├── Controllers/
+│   │   ├── Auth/LoginController.php      # Login e logout
+│   │   └── ContactController.php         # CRUD de contatos
+│   ├── Requests/
+│   │   ├── ContactRequest.php            # Classe base com labels e mensagens
+│   │   ├── StoreContactRequest.php       # Validação de criação
+│   │   ├── UpdateContactRequest.php      # Validação de edição (ignora próprio ID)
+│   │   └── LoginRequest.php             # Validação de credenciais
+│   └── Middleware/
+│       └── Authenticate.php
+├── Models/
+│   └── Contact.php                       # Model com SoftDeletes + scopeSearch
+database/
+├── migrations/
+│   └── 2026_02_23_000000_create_contacts_table.php
+├── seeders/
+│   ├── AdminUserSeeder.php               # admin@admin.com / 123456
+│   └── ContactSeeder.php                # 5 contatos de exemplo
+└── factories/
+    └── ContactFactory.php
+resources/views/
+├── layouts/app.blade.php                # Layout Bootstrap 5
+├── auth/login.blade.php
+└── contacts/
+    ├── index.blade.php
+    ├── create.blade.php
+    ├── show.blade.php
+    └── edit.blade.php
+tests/
+├── Unit/ExampleTest.php                 # Testes de configuração do modelo
+└── Feature/
+    ├── ContactValidationTest.php        # Suite principal (54 testes)
+    └── ExampleTest.php                  # Rotas raiz
+public/
+└── api-docs/
+    ├── openapi.yaml                     # OpenAPI 3.0 spec
+    └── index.html                       # Swagger UI
+```
+
+---
+
+## Deploy
+
+O projeto usa o ambiente fornecido pela Alfasoft com MariaDB. Os passos de deploy são:
+
+```bash
+git pull origin master
+composer install --no-dev --optimize-autoloader
+php artisan migrate --force
+php artisan db:seed --force
+php artisan config:cache
+php artisan route:cache
+php artisan view:cache
+```
+
+> **Importante:** o arquivo `.env` do servidor **não** está no repositório (`.gitignore`). As credenciais do banco já estão pré-configuradas no ambiente remoto — não sobrescreva esse arquivo.
+
+---
+
+## Licença
+
+MIT
