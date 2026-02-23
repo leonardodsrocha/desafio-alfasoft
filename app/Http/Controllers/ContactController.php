@@ -98,9 +98,9 @@ class ContactController extends Controller
      * Apaga o contato de forma reversível (soft-delete).
      *
      * O registro não é removido fisicamente — fica na tabela com deleted_at
-     * preenchido. Isso mantém ativas as restrições de unicidade de telefone
-     * e e-mail: o mesmo número ou endereço não pode ser cadastrado novamente,
-     * mesmo que o contato original tenha sido excluído.
+     * preenchido. Após a exclusão, o número de telefone e o e-mail do contato
+     * ficam disponíveis para reutilização em novos cadastros, porque a validação
+     * de unicidade usa whereNull('deleted_at') e ignora registros excluídos.
      */
     public function destroy(Contact $contact): RedirectResponse
     {

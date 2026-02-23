@@ -142,6 +142,7 @@ Duration: ~2s
 | Login — formulário, validação, credenciais | 6 |
 | Logout — sessão e guard | 2 |
 | Activity Log — criação, edição, exclusão, filtro, display | 11 |
+| Routes — root redirect e index público | 2 |
 | Unit — modelo Contact | 3 |
 
 ---
@@ -220,9 +221,9 @@ resources/views/
 tests/
 ├── Unit/ExampleTest.php                 # Testes de configuração do modelo
 └── Feature/
-    ├── ContactValidationTest.php        # Suite principal (54 testes)
+    ├── ContactValidationTest.php        # Suite principal (52 testes)
     ├── ActivityLogTest.php              # Suite do Activity Log (11 testes)
-    └── ExampleTest.php                  # Rotas raiz
+    └── ExampleTest.php                  # Rotas raiz (2 testes)
 public/
 └── api-docs/
     ├── openapi.yaml                     # OpenAPI 3.0 spec
